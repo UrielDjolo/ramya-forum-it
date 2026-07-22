@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useReveal from "../hooks/useReveal";
 
+const SLIDE_DURATION = 5000;
+const VIDEO_FALLBACK_DURATION = 45000;
+
 const SLIDES = [
   { id: 12, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-1.jpg", blend: true },
   { id: 13, title: "Marahoué Business Connect", image: "/evenement/marahoue-2.jpg", blend: true },
   { id: 14, title: "Marahoué Business Connect", image: "/evenement/marahoue-3.jpg", blend: true },
   { id: 15, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-4.jpg", blend: true },
   { id: 16, title: "Marahoué Business Connect 2026", type: "video", video: "/evenement/marahoue-video.mp4", blend: true },
+  { id: 17, title: "Scannez pour nous contacter", image: "/evenement/qrcode-ramya.jpg", fit: "contain" },
   { id: 11, title: "RAMYA Technologie & Innovation", image: "/logo_ramya.png", fit: "contain" },
 ];
 
@@ -15,12 +19,15 @@ export default function Hero() {
   const revealRef = useReveal();
   const [index, setIndex] = useState(0);
 
+  function advance() {
+    setIndex((i) => (i + 1) % SLIDES.length);
+  }
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % SLIDES.length);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, []);
+    const isVideo = SLIDES[index].type === "video";
+    const timer = setTimeout(advance, isVideo ? VIDEO_FALLBACK_DURATION : SLIDE_DURATION);
+    return () => clearTimeout(timer);
+  }, [index]);
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden hero-mesh">
@@ -114,8 +121,8 @@ export default function Hero() {
                         src={slide.video}
                         autoPlay
                         muted
-                        loop
                         playsInline
+                        onEnded={i === index ? advance : undefined}
                       />
                     </>
                   ) : (
