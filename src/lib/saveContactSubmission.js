@@ -30,4 +30,28 @@ export async function saveContactSubmission(formData) {
   });
 
   if (error) throw error;
+
+  try {
+    await fetch("https://rapport-pointage.ramyaci.tech/api/prospects/intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: formData.type,
+        entreprise: formData.entrepriseNom || "",
+        secteur: formData.secteur || "",
+        fonction: formData.fonction || "",
+        nom: formData.nomPrenom || "",
+        telephone: formData.telephone || "",
+        whatsapp: formData.whatsapp || "",
+        email: formData.email || "",
+        ville: formData.ville || "",
+        commune: formData.commune || "",
+        quartier: formData.quartier || "",
+        adresse: formData.adresse || "",
+        besoin: formData.besoin || "",
+        services: services.join(", "),
+        observations: formData.observations || "",
+      }),
+    });
+  } catch (e) { console.warn("WannyGest:", e); }
 }
