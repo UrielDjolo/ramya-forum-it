@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import useReveal from "../hooks/useReveal";
 
 const SLIDES = [
-  { id: 12, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-1.jpg", fit: "cover" },
-  { id: 13, title: "Marahoué Business Connect", image: "/evenement/marahoue-2.jpg", fit: "cover" },
-  { id: 14, title: "Marahoué Business Connect", image: "/evenement/marahoue-3.jpg", fit: "cover" },
-  { id: 15, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-4.jpg", fit: "cover" },
-  { id: 16, title: "Marahoué Business Connect 2026", type: "video", video: "/evenement/marahoue-video.mp4" },
+  { id: 12, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-1.jpg", blend: true },
+  { id: 13, title: "Marahoué Business Connect", image: "/evenement/marahoue-2.jpg", blend: true },
+  { id: 14, title: "Marahoué Business Connect", image: "/evenement/marahoue-3.jpg", blend: true },
+  { id: 15, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-4.jpg", blend: true },
+  { id: 16, title: "Marahoué Business Connect 2026", type: "video", video: "/evenement/marahoue-video.mp4", blend: true },
   { id: 11, title: "RAMYA Technologie & Innovation", image: "/logo_ramya.png", fit: "contain" },
 ];
 
@@ -89,30 +89,58 @@ export default function Hero() {
         <div className="relative group">
           <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-full transition-all group-hover:bg-primary/20"></div>
           <div className="relative glass rounded-3xl overflow-hidden border border-on-surface/10 shadow-2xl aspect-[4/5]">
-            {SLIDES.map((slide, i) =>
-              slide.type === "video" ? (
-                <video
-                  key={slide.id}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-                    i === index ? "opacity-100" : "opacity-0"
-                  }`}
-                  src={slide.video}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                />
-              ) : (
-                <img
-                  key={slide.id}
-                  alt={slide.title}
-                  className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${
-                    slide.fit === "contain" ? "object-contain bg-white p-12" : "object-cover"
-                  } ${i === index ? "opacity-100" : "opacity-0"}`}
-                  src={slide.image}
-                />
-              )
-            )}
+            {SLIDES.map((slide, i) => (
+              <div
+                key={slide.id}
+                className={`absolute inset-0 transition-opacity duration-700 ${
+                  i === index ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {slide.blend ? (
+                  slide.type === "video" ? (
+                    <>
+                      <video
+                        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+                        src={slide.video}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        aria-hidden="true"
+                      />
+                      <div className="absolute inset-0 bg-black/30" />
+                      <video
+                        className="absolute inset-0 w-full h-full object-contain"
+                        src={slide.video}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+                        src={slide.image}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      <div className="absolute inset-0 bg-black/30" />
+                      <img className="absolute inset-0 w-full h-full object-contain" src={slide.image} alt={slide.title} />
+                    </>
+                  )
+                ) : (
+                  <img
+                    className={`absolute inset-0 w-full h-full ${
+                      slide.fit === "contain" ? "object-contain bg-white p-12" : "object-cover"
+                    }`}
+                    alt={slide.title}
+                    src={slide.image}
+                  />
+                )}
+              </div>
+            ))}
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5 pt-12 flex items-center justify-between gap-3">
               <p className="text-white font-bold text-sm">{SLIDES[index].title}</p>
               <div className="flex items-center gap-1.5 shrink-0">
