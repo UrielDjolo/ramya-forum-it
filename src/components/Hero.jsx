@@ -3,21 +3,11 @@ import { Link } from "react-router-dom";
 import useReveal from "../hooks/useReveal";
 
 const SLIDES = [
-  {
-    id: 1,
-    title: "Marahoué Business Connect 2026",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDulysvpo1l2vPXYe9T4DasfsqCKQb2tf6d7ufOtawtosQi8Hs8F8p4fKmzqtWI6d4Ht_T5jDqCV_caLR2nO88_w4wzEgFaBguL3Nr7n6nts87urC-jOBBht0IgYJW6lpCBa2tusPhs8Nnj-wAGM5PZbLhA7tK5dE9XU4s1EE6VCz_6tPT9fPjnUHOFYZrRV8U6Ws__EaTruoA1-yFsVCVaw76HsrRgZu-4xo_kzxIT_1OOSs3b1eqVTTlszh7E4X-r2A",
-    fit: "cover",
-  },
-  { id: 2, title: "Vidéosurveillance", image: "/produits/2.jpg", fit: "cover" },
-  { id: 3, title: "Clôture électrique", image: "/produits/video-surveillance-2898.jpg", fit: "cover" },
-  { id: 4, title: "Portails automatisés", image: "/produits/produit-1.jpg", fit: "cover" },
-  { id: 5, title: "Poignées intelligentes", image: "/produits/images.jpg", fit: "cover" },
-  { id: 6, title: "Contrôle d'accès & Pointage biométrique", image: "/produits/1.jpg", fit: "cover" },
-  { id: 7, title: "Coffres-forts", image: "/produits/300-big.jpg", fit: "cover" },
-  { id: 8, title: "Tracking véhicule", image: "/produits/fffww.jpg", fit: "cover" },
-  { id: 10, title: "Sécurité incendie (SSI)", image: "/produits/incendie.png", fit: "cover" },
+  { id: 12, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-1.jpg", fit: "cover" },
+  { id: 13, title: "Marahoué Business Connect", image: "/evenement/marahoue-2.jpg", fit: "cover" },
+  { id: 14, title: "Marahoué Business Connect", image: "/evenement/marahoue-3.jpg", fit: "cover" },
+  { id: 15, title: "Marahoué Business Connect 2026", image: "/evenement/marahoue-4.jpg", fit: "cover" },
+  { id: 16, title: "Marahoué Business Connect 2026", type: "video", video: "/evenement/marahoue-video.mp4" },
   { id: 11, title: "RAMYA Technologie & Innovation", image: "/logo_ramya.png", fit: "contain" },
 ];
 
@@ -99,16 +89,30 @@ export default function Hero() {
         <div className="relative group">
           <div className="absolute -inset-4 bg-primary/10 blur-3xl rounded-full transition-all group-hover:bg-primary/20"></div>
           <div className="relative glass rounded-3xl overflow-hidden border border-on-surface/10 shadow-2xl aspect-[4/5]">
-            {SLIDES.map((slide, i) => (
-              <img
-                key={slide.id}
-                alt={slide.title}
-                className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${
-                  slide.fit === "contain" ? "object-contain bg-white p-12" : "object-cover"
-                } ${i === index ? "opacity-100" : "opacity-0"}`}
-                src={slide.image}
-              />
-            ))}
+            {SLIDES.map((slide, i) =>
+              slide.type === "video" ? (
+                <video
+                  key={slide.id}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+                    i === index ? "opacity-100" : "opacity-0"
+                  }`}
+                  src={slide.video}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  key={slide.id}
+                  alt={slide.title}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${
+                    slide.fit === "contain" ? "object-contain bg-white p-12" : "object-cover"
+                  } ${i === index ? "opacity-100" : "opacity-0"}`}
+                  src={slide.image}
+                />
+              )
+            )}
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-5 pt-12 flex items-center justify-between gap-3">
               <p className="text-white font-bold text-sm">{SLIDES[index].title}</p>
               <div className="flex items-center gap-1.5 shrink-0">
