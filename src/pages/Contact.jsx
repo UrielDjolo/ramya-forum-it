@@ -156,6 +156,7 @@ export default function Contact() {
     try {
       await saveContactSubmission(formData);
       setStatus("success");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setStatus("idle");
       setSubmitError(err.message || "Une erreur est survenue lors de l'envoi. Veuillez réessayer.");

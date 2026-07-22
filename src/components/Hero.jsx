@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import useReveal from "../hooks/useReveal";
 
@@ -18,6 +18,8 @@ const SLIDES = [
 export default function Hero() {
   const revealRef = useReveal();
   const [index, setIndex] = useState(0);
+  const videoFgRef = useRef(null);
+  const videoBgRef = useRef(null);
 
   function advance() {
     setIndex((i) => (i + 1) % SLIDES.length);
@@ -27,6 +29,15 @@ export default function Hero() {
     const isVideo = SLIDES[index].type === "video";
     const timer = setTimeout(advance, isVideo ? VIDEO_FALLBACK_DURATION : SLIDE_DURATION);
     return () => clearTimeout(timer);
+  }, [index]);
+
+  useEffect(() => {
+    if (SLIDES[index].type !== "video") return;
+    [videoFgRef.current, videoBgRef.current].forEach((video) => {
+      if (!video) return;
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    });
   }, [index]);
 
   return (
@@ -107,6 +118,7 @@ export default function Hero() {
                   slide.type === "video" ? (
                     <>
                       <video
+                        ref={videoBgRef}
                         className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
                         src={slide.video}
                         autoPlay
@@ -117,6 +129,7 @@ export default function Hero() {
                       />
                       <div className="absolute inset-0 bg-black/30" />
                       <video
+                        ref={videoFgRef}
                         className="absolute inset-0 w-full h-full object-contain"
                         src={slide.video}
                         autoPlay
