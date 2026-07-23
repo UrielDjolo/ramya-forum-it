@@ -6,6 +6,7 @@ import { exportSubmissionsToExcel } from "../lib/exportExcel";
 import Calendar from "../components/admin/Calendar";
 import ServicesChart from "../components/admin/ServicesChart";
 import Toast from "../components/admin/Toast";
+import Traffic from "../components/admin/Traffic";
 
 function dateKey(date) {
   const d = new Date(date);
@@ -338,6 +339,7 @@ function Dashboard({ userEmail, onLogout }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [exportingSelectionPdf, setExportingSelectionPdf] = useState(false);
   const [exportingSelectionExcel, setExportingSelectionExcel] = useState(false);
+  const [tab, setTab] = useState("demandes");
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
@@ -539,6 +541,31 @@ function Dashboard({ userEmail, onLogout }) {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 mb-8 p-1 rounded-full border border-white/10 w-fit">
+        {[
+          { value: "demandes", label: "Demandes", icon: "inbox" },
+          { value: "trafic", label: "Trafic", icon: "monitoring" },
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setTab(option.value)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex items-center gap-2 ${
+              tab === option.value
+                ? "bg-primary-container text-white"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">{option.icon}</span>
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "trafic" ? (
+        <Traffic />
+      ) : (
+        <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatTile icon="inbox" value={stats.total} label="Total demandes" />
         <StatTile icon="domain" value={stats.entreprises} label="Entreprises" />
@@ -730,6 +757,8 @@ function Dashboard({ userEmail, onLogout }) {
           </div>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }
