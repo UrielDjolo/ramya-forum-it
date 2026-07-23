@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-
-const FETCH_LIMIT = 3000;
+import { useMemo, useState } from "react";
+import StatTile from "./StatTile";
+import { dailyCounts } from "../../lib/dateBuckets";
 
 const DEVICE_ICONS = {
   Mobile: "smartphone",
@@ -9,19 +8,10 @@ const DEVICE_ICONS = {
   Ordinateur: "computer",
 };
 
-function StatTile({ icon, value, label }) {
-  return (
-    <div className="glass border border-white/10 rounded-2xl p-5 flex items-center gap-4">
-      <div className="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      <div>
-        <p className="font-display-md text-2xl font-bold leading-none">{value}</p>
-        <p className="text-on-surface-variant text-xs uppercase tracking-widest mt-1">{label}</p>
-      </div>
-    </div>
-  );
-}
+const SEARCH_ENGINES = ["google.", "bing.", "yahoo.", "duckduckgo.", "ecosia.", "qwant."];
+const SOCIAL_NETWORKS = [
+  "facebook.", "instagram.", "twitter.", "x.com", "linkedin.", "tiktok.", "whatsapp.", "t.co", "youtube.",
+];
 
 function BreakdownCard({ title, rows }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
@@ -69,6 +59,20 @@ function referrerLabel(referrer) {
   }
 }
 
+function categorizeReferrer(referrer) {
+  if (!referrer) return "Accès direct";
+  let hostname;
+  try {
+    hostname = new URL(referrer).hostname.toLowerCase();
+  } catch {
+    return "Autres sites";
+  }
+  if (typeof window !== "undefined" && hostname === window.location.hostname) return "Navigation interne";
+  if (SEARCH_ENGINES.some((s) => hostname.includes(s))) return "Recherche";
+  if (SOCIAL_NETWORKS.some((s) => hostname.includes(s))) return "Réseaux sociaux";
+  return "Autres sites";
+}
+
 function countBy(items, key) {
   const counts = {};
   for (const item of items) {
@@ -80,29 +84,8 @@ function countBy(items, key) {
     .sort((a, b) => b.value - a.value);
 }
 
-export default function Traffic() {
-  const [visits, setVisits] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export default function Traffic({ visits, loading, error, onRefresh, onReset }) {
   const [resetting, setResetting] = useState(false);
-
-  const fetchVisits = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    const { data, error } = await supabase
-      .from("site_visits")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(FETCH_LIMIT);
-
-    if (error) setError(error.message);
-    else setVisits(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchVisits();
-  }, [fetchVisits]);
 
   async function handleReset() {
     const confirmed = window.confirm(
@@ -110,29 +93,12 @@ export default function Traffic() {
     );
     if (!confirmed) return;
     setResetting(true);
-    setError("");
-    const { error } = await supabase.from("site_visits").delete().not("id", "is", null);
-    if (error) setError(error.message);
-    else setVisits([]);
-    setResetting(false);
+    try {
+      await onReset();
+    } finally {
+      setResetting(false);
+    }
   }
-
-  useEffect(() => {
-    const channel = supabase
-      .channel("site_visits_inserts")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "site_visits" },
-        (payload) => {
-          setVisits((prev) => [payload.new, ...prev].slice(0, FETCH_LIMIT));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const stats = useMemo(() => {
     const today = new Date().toDateString();
@@ -144,12 +110,18 @@ export default function Traffic() {
     };
   }, [visits]);
 
+  const visitsTrend = useMemo(() => dailyCounts(visits, 7), [visits]);
+
   const byDevice = useMemo(() => countBy(visits, "device_type"), [visits]);
   const byBrowser = useMemo(() => countBy(visits, "browser").slice(0, 6), [visits]);
   const byOs = useMemo(() => countBy(visits, "os").slice(0, 6), [visits]);
   const byPage = useMemo(() => countBy(visits, "path").slice(0, 8), [visits]);
   const byDeviceName = useMemo(
     () => countBy(visits.filter((v) => v.device_name), "device_name").slice(0, 8),
+    [visits]
+  );
+  const bySource = useMemo(
+    () => countBy(visits.map((v) => ({ source: categorizeReferrer(v.referrer) })), "source"),
     [visits]
   );
 
@@ -160,7 +132,7 @@ export default function Traffic() {
         <div className="flex gap-3 flex-wrap">
           <button
             type="button"
-            onClick={fetchVisits}
+            onClick={onRefresh}
             className="px-4 py-2 rounded-full border border-white/10 text-sm font-semibold hover:border-primary/50 transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-base">refresh</span>
@@ -179,7 +151,7 @@ export default function Traffic() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatTile icon="visibility" value={stats.total} label="Pages vues" />
+        <StatTile icon="visibility" value={stats.total} label="Pages vues" trend={visitsTrend} trendColor="#f75e2d" />
         <StatTile icon="group" value={stats.unique} label="Visiteurs uniques" />
         <StatTile icon="today" value={stats.today} label="Aujourd'hui" />
         <StatTile icon="smartphone" value={stats.mobile} label="Via mobile" />
@@ -205,7 +177,8 @@ export default function Traffic() {
             <BreakdownCard title="Systèmes" rows={byOs} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+            <BreakdownCard title="Sources de trafic" rows={bySource} />
             <BreakdownCard title="Modèles de téléphone/tablette" rows={byDeviceName} />
             <BreakdownCard title="Pages les plus visitées" rows={byPage} />
           </div>

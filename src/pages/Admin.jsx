@@ -7,11 +7,10 @@ import Calendar from "../components/admin/Calendar";
 import ServicesChart from "../components/admin/ServicesChart";
 import Toast from "../components/admin/Toast";
 import Traffic from "../components/admin/Traffic";
-
-function dateKey(date) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import TrendChart from "../components/admin/TrendChart";
+import StatTile from "../components/admin/StatTile";
+import useSiteVisits from "../hooks/useSiteVisits";
+import { dateKey, dailyCounts, lastNDays } from "../lib/dateBuckets";
 
 const STATUSES = [
   { value: "nouveau", label: "Nouveau", badgeClass: "bg-primary-container/20 text-primary" },
@@ -121,20 +120,6 @@ function LoginScreen({ onLogin, loading, error }) {
           {loading ? "Connexion..." : "Se connecter"}
         </button>
       </form>
-    </div>
-  );
-}
-
-function StatTile({ icon, value, label }) {
-  return (
-    <div className="glass border border-white/10 rounded-2xl p-5 flex items-center gap-4">
-      <div className="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
-        <span className="material-symbols-outlined">{icon}</span>
-      </div>
-      <div>
-        <p className="font-display-md text-2xl font-bold leading-none">{value}</p>
-        <p className="text-on-surface-variant text-xs uppercase tracking-widest mt-1">{label}</p>
-      </div>
     </div>
   );
 }
@@ -340,6 +325,7 @@ function Dashboard({ userEmail, onLogout }) {
   const [exportingSelectionPdf, setExportingSelectionPdf] = useState(false);
   const [exportingSelectionExcel, setExportingSelectionExcel] = useState(false);
   const [tab, setTab] = useState("demandes");
+  const { visits, loading: visitsLoading, error: visitsError, refetch: refetchVisits, resetVisits } = useSiteVisits();
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
@@ -488,6 +474,21 @@ function Dashboard({ userEmail, onLogout }) {
 
   const groupedSubmissions = useMemo(() => groupByPeriod(filteredSubmissions), [filteredSubmissions]);
 
+  const submissionsTrend = useMemo(() => dailyCounts(submissions, 7), [submissions]);
+
+  const trendData = useMemo(() => {
+    const days = lastNDays(30);
+    const visitCounts = dailyCounts(visits, 30);
+    const submissionCounts = dailyCounts(submissions, 30);
+    return days.map((label, i) => ({ label, visits: visitCounts[i], submissions: submissionCounts[i] }));
+  }, [visits, submissions]);
+
+  const conversion = useMemo(() => {
+    const uniqueVisitors = new Set(visits.map((v) => v.visitor_id)).size;
+    const rate = uniqueVisitors > 0 ? (submissions.length / uniqueVisitors) * 100 : 0;
+    return { uniqueVisitors, rate };
+  }, [visits, submissions]);
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
       <Toast toasts={toasts} onDismiss={dismissToast} />
@@ -541,6 +542,23 @@ function Dashboard({ userEmail, onLogout }) {
         </div>
       </div>
 
+      <div className="glass border border-white/10 rounded-2xl p-5 mb-8 flex items-center gap-4 flex-wrap justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary shrink-0">
+            <span className="material-symbols-outlined">insights</span>
+          </div>
+          <div>
+            <p className="font-display-md text-2xl font-bold leading-none">{conversion.rate.toFixed(1)}%</p>
+            <p className="text-on-surface-variant text-xs uppercase tracking-widest mt-1">Taux de conversion</p>
+          </div>
+        </div>
+        <p className="text-on-surface-variant text-sm">
+          {stats.total} demande(s) pour {conversion.uniqueVisitors} visiteur(s) unique(s)
+        </p>
+      </div>
+
+      <TrendChart data={trendData} />
+
       <div className="flex items-center gap-2 mb-8 p-1 rounded-full border border-white/10 w-fit">
         {[
           { value: "demandes", label: "Demandes", icon: "inbox" },
@@ -563,11 +581,17 @@ function Dashboard({ userEmail, onLogout }) {
       </div>
 
       {tab === "trafic" ? (
-        <Traffic />
+        <Traffic
+          visits={visits}
+          loading={visitsLoading}
+          error={visitsError}
+          onRefresh={refetchVisits}
+          onReset={resetVisits}
+        />
       ) : (
         <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatTile icon="inbox" value={stats.total} label="Total demandes" />
+        <StatTile icon="inbox" value={stats.total} label="Total demandes" trend={submissionsTrend} trendColor="#f75e2d" />
         <StatTile icon="domain" value={stats.entreprises} label="Entreprises" />
         <StatTile icon="person" value={stats.particuliers} label="Particuliers" />
         <StatTile icon="today" value={stats.today} label="Aujourd'hui" />
