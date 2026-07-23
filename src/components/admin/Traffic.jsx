@@ -84,6 +84,7 @@ export default function Traffic() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const fetchVisits = useCallback(async () => {
     setLoading(true);
@@ -102,6 +103,19 @@ export default function Traffic() {
   useEffect(() => {
     fetchVisits();
   }, [fetchVisits]);
+
+  async function handleReset() {
+    const confirmed = window.confirm(
+      "Réinitialiser tout le trafic ? Cette action supprime définitivement toutes les visites enregistrées."
+    );
+    if (!confirmed) return;
+    setResetting(true);
+    setError("");
+    const { error } = await supabase.from("site_visits").delete().not("id", "is", null);
+    if (error) setError(error.message);
+    else setVisits([]);
+    setResetting(false);
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -134,19 +148,34 @@ export default function Traffic() {
   const byBrowser = useMemo(() => countBy(visits, "browser").slice(0, 6), [visits]);
   const byOs = useMemo(() => countBy(visits, "os").slice(0, 6), [visits]);
   const byPage = useMemo(() => countBy(visits, "path").slice(0, 8), [visits]);
+  const byDeviceName = useMemo(
+    () => countBy(visits.filter((v) => v.device_name), "device_name").slice(0, 8),
+    [visits]
+  );
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <h2 className="font-headline-lg text-xl font-bold">Trafic du site</h2>
-        <button
-          type="button"
-          onClick={fetchVisits}
-          className="px-4 py-2 rounded-full border border-white/10 text-sm font-semibold hover:border-primary/50 transition-colors flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-base">refresh</span>
-          Actualiser
-        </button>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={fetchVisits}
+            className="px-4 py-2 rounded-full border border-white/10 text-sm font-semibold hover:border-primary/50 transition-colors flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-base">refresh</span>
+            Actualiser
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={resetting || visits.length === 0}
+            className="px-4 py-2 rounded-full border border-white/10 text-sm font-semibold hover:border-error/50 hover:text-error transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-base">delete_sweep</span>
+            {resetting ? "Réinitialisation..." : "Réinitialiser le trafic"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -176,7 +205,8 @@ export default function Traffic() {
             <BreakdownCard title="Systèmes" rows={byOs} />
           </div>
 
-          <div className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+            <BreakdownCard title="Modèles de téléphone/tablette" rows={byDeviceName} />
             <BreakdownCard title="Pages les plus visitées" rows={byPage} />
           </div>
 
@@ -205,7 +235,7 @@ export default function Traffic() {
                         <span className="material-symbols-outlined text-base text-primary">
                           {DEVICE_ICONS[v.device_type] || "devices_other"}
                         </span>
-                        {v.device_type || "—"}
+                        {v.device_name || v.device_type || "—"}
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap">{v.browser || "—"}</td>
                       <td className="px-5 py-3 whitespace-nowrap">{v.os || "—"}</td>

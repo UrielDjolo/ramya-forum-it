@@ -33,6 +33,18 @@ function parseUserAgent(ua) {
   return { deviceType, browser, os };
 }
 
+function parseDeviceName(ua) {
+  if (/iPad/i.test(ua)) return "iPad";
+  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/iPod/i.test(ua)) return "iPod";
+  const match = ua.match(/Android\s[\d.]+;\s*([^;)]+)/i);
+  if (match) {
+    const model = match[1].replace(/Build\/.*/i, "").trim();
+    if (model && model.toLowerCase() !== "android") return model;
+  }
+  return null;
+}
+
 export async function trackVisit(path) {
   if (!supabaseConfigured) return;
   try {
@@ -43,6 +55,7 @@ export async function trackVisit(path) {
       path,
       referrer: document.referrer || null,
       device_type: deviceType,
+      device_name: parseDeviceName(ua),
       browser,
       os,
       user_agent: ua,
